@@ -6,7 +6,7 @@
   "configurations": [
     {
       "name": ".NET Core Launch (console)",
-      "type": "coreclr",
+      "type": "clr",
       "request": "launch",
       "WARNING01": "*********************************************************************************",
       "WARNING02": "The C# extension was unable to automatically decode projects in the current",
@@ -26,7 +26,7 @@
       "WARNING16": "button at the bottom of this file.",
       "WARNING17": "*********************************************************************************",
       "preLaunchTask": "build",
-      "program": "${workspaceFolder}/bin/Debug/netcoreapp3.0/teste.exe",
+      "program": "${workspaceFolder}/bin/Debug/net45/EtiquetaZebra_Teste.exe",
       "args": [],
       "cwd": "${workspaceFolder}",
       "console": "internalConsole",

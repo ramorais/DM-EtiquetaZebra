@@ -9,29 +9,37 @@ using System.Text;
 namespace EtiquetaZebra {
 
   // ---
-  public class Main {
+  public class ProtheusDll {
+
+    // ---
+    private static String removerNaoZPL(String conteudo) {
+
+      var pos = conteudo.IndexOf("^XA");
+      if(pos > 0)
+        return conteudo.Substring(pos);
+      else
+        return conteudo;
+
+    }
+    // ------------------------------------------------------------------------ 
 
     // ---
     // ExeDLLRun
     [DllExport("ExecInClientDLL", CallingConvention.StdCall)]
     public static unsafe void ExecInClientDLL(int nOpc, byte* cStrInput, byte* cStrReturn, int nRetMaxSize) {
 
+      string ret = "";
+      // ---
       StringPtr strInput = new StringPtr(cStrInput);  // entrada
       StringPtr strReturn = new StringPtr();          // retorno
-      // ---
-      JObject json = null;
-      string impressora = "";
-      string arquivoEtiqueta = "";
-      // ---
-      string ret = "";
 
       try {
 
-        json = JObject.Parse(strInput.toString());
+        var json = JObject.Parse(strInput.toString());
 
-        impressora = json["impressora"].ToString();
-        arquivoEtiqueta = json["arquivoEtiqueta"].ToString();
-        var corpo = File.ReadAllText(arquivoEtiqueta);
+        var impressora = json["impressora"].ToString();
+        var arquivoEtiqueta = json["arquivoEtiqueta"].ToString();
+        var conteudoArquivo = removerNaoZPL(File.ReadAllText(arquivoEtiqueta));
 
         JObject campos = (JObject)json["campos"];
         foreach (JProperty j in campos.Properties()) {
@@ -39,29 +47,31 @@ namespace EtiquetaZebra {
           var campo = "%" + j.Name + "%";
           var valor = j.Value.ToString();
 
-          corpo = corpo.Replace(campo, valor);
+          conteudoArquivo = conteudoArquivo.Replace(campo, valor);
           
         }
-
-        ret = corpo;
 
         if (impressora.Length != 0) {
 
           var sufixo = DateTime.Today.ToString("_ddmmyyyy_hhMMss");
 
           IPrinter printer = new Printer();
-          printer.PrintRawStream(impressora, new MemoryStream(Encoding.ASCII.GetBytes(corpo)), "EtiquetaZebra" + sufixo);
+          printer.PrintRawStream(
+            impressora,
+            new MemoryStream(Encoding.ASCII.GetBytes(conteudoArquivo)), "EtiquetaZebra" + sufixo
+          );
 
         }
 
+        ret = conteudoArquivo;
+
       }
       catch(Exception e) {
-
         ret = "#Erro: " + e.Message;
-
       }
 
-      strReturn.fromString(ret);
+      // cria o buffer
+      strReturn.fromString(ret.Substring(0, nRetMaxSize));
 
       // copia para retornar
       strReturn.copyTo(cStrReturn);
