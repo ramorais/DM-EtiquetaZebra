@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿
 using System.Text;
-using System.Threading.Tasks;
 
 namespace EtiquetaZebra {
 
@@ -10,7 +7,7 @@ namespace EtiquetaZebra {
   // converte strings
   public class StringPtr {
 
-    byte[] buff = new byte[1024];
+    byte[] buff = new byte[20000];
 
     // ---
     // StringPtr()
@@ -44,8 +41,8 @@ namespace EtiquetaZebra {
     public void fromString(string s) {
 
       var i = 0;
-      foreach(var c in s)
-        buff[i++] = (byte)c;  
+      foreach (var c in s)
+        buff[i++] = (byte)c;
       buff[i] = 0;
 
     }

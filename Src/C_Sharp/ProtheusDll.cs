@@ -1,21 +1,25 @@
-using Newtonsoft.Json.Linq;
-using RawPrint;
-using RGiesecke.DllExport;
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+// ---
+using RGiesecke.DllExport;
+using Newtonsoft.Json.Linq;
+using RawPrint;
 
 namespace EtiquetaZebra {
 
   // ---
+  // dll
   public class ProtheusDll {
 
     // ---
-    private static String removerNaoZPL(String conteudo) {
+    // remove os caracteres de controle
+    // do começo do arquivo
+    private static String removerComecoArquivo(String conteudo) {
 
       var pos = conteudo.IndexOf("^XA");
-      if(pos > 0)
+      if (pos > 0)
         return conteudo.Substring(pos);
       else
         return conteudo;
@@ -24,7 +28,7 @@ namespace EtiquetaZebra {
     // ------------------------------------------------------------------------ 
 
     // ---
-    // ExeDLLRun
+    // ExeDLLRun2
     [DllExport("ExecInClientDLL", CallingConvention.StdCall)]
     public static unsafe void ExecInClientDLL(int nOpc, byte* cStrInput, byte* cStrReturn, int nRetMaxSize) {
 
@@ -37,10 +41,13 @@ namespace EtiquetaZebra {
 
         var json = JObject.Parse(strInput.toString());
 
-        var impressora = json["impressora"].ToString();
-        var arquivoEtiqueta = json["arquivoEtiqueta"].ToString();
-        var conteudoArquivo = removerNaoZPL(File.ReadAllText(arquivoEtiqueta));
+        var impressora = json["impressora"].ToString();           // nome da impressora
+        var arquivoEtiqueta = json["arquivoEtiqueta"].ToString(); // arquivo a ser interpretado
+        var conteudoArquivo = removerComecoArquivo(
+          File.ReadAllText(arquivoEtiqueta)
+        );
 
+        // substitui as macros pelos valores
         JObject campos = (JObject)json["campos"];
         foreach (JProperty j in campos.Properties()) {
 
@@ -48,12 +55,14 @@ namespace EtiquetaZebra {
           var valor = j.Value.ToString();
 
           conteudoArquivo = conteudoArquivo.Replace(campo, valor);
-          
+
         }
 
+        // se a impressora não foi 
+        // especificada, ignora a impressão
         if (impressora.Length != 0) {
 
-          var sufixo = DateTime.Today.ToString("_ddmmyyyy_hhMMss");
+          var sufixo = DateTime.Now.ToString("_ddMMyyyyHHmmssffffff");
 
           IPrinter printer = new Printer();
           printer.PrintRawStream(
@@ -63,17 +72,22 @@ namespace EtiquetaZebra {
 
         }
 
+        // mas retorna uma string
+        // com o código ZPL formatado
         ret = conteudoArquivo;
 
-      }
-      catch(Exception e) {
+      } catch (Exception e) {
         ret = "#Erro: " + e.Message;
       }
 
       // cria o buffer
-      strReturn.fromString(ret.Substring(0, nRetMaxSize));
+      if (ret.Length > nRetMaxSize) {
+        strReturn.fromString(ret.Substring(0, nRetMaxSize));
+      } else {
+        strReturn.fromString(ret);
+      }
 
-      // copia para retornar
+      // copia buffer p/ retornar
       strReturn.copyTo(cStrReturn);
 
     }
